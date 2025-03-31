@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { DratfExpense, Value } from "../types";
 import { categories } from "../data/categories";
 import DatePicker from "react-date-picker";
@@ -16,7 +16,18 @@ export default function ExpenseForm() {
   });
 
   const [error, setError] = useState("");
-  const { dispatch } = useBudget();
+  const { dispatch, state } = useBudget();
+
+  useEffect(() => {
+    if (state.editingID) {
+      const expenseToEdit = state.expenses.filter(
+        (expense) => expense.id === state.editingID,
+      );
+      if (expenseToEdit) {
+        setExpense(expenseToEdit[0]);
+      }
+    }
+  }, [state.editingID]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLSelectElement>,
@@ -43,11 +54,20 @@ export default function ExpenseForm() {
       setError("Todos los campos son obligatorios");
       return;
     }
-    //Agregar un nuevo gasto
-    dispatch({
-      type: "add-expense",
-      payload: { expense },
-    });
+    //Agregar un nuevo gasto o actualizar
+    if (state.editingID) {
+      dispatch({
+        type: "update-expense",
+        payload: { expense: { id: state.editingID, ...expense } },
+      });
+      setError("");
+      return;
+    } else {
+      dispatch({
+        type: "add-expense",
+        payload: { expense },
+      });
+    }
 
     //Reiniciar el formulario
     setExpense({
