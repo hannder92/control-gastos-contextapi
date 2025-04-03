@@ -16,15 +16,17 @@ export default function ExpenseForm() {
   });
 
   const [error, setError] = useState("");
-  const { dispatch, state } = useBudget();
+  const [previousAmount, setPreviousAmount] = useState(0);
+  const { dispatch, state, remainingBudget } = useBudget();
 
   useEffect(() => {
     if (state.editingID) {
       const expenseToEdit = state.expenses.filter(
         (expense) => expense.id === state.editingID,
-      );
+      )[0];
       if (expenseToEdit) {
-        setExpense(expenseToEdit[0]);
+        setExpense(expenseToEdit);
+        setPreviousAmount(expenseToEdit.amount);
       }
     }
   }, [state.editingID]);
@@ -54,14 +56,23 @@ export default function ExpenseForm() {
       setError("Todos los campos son obligatorios");
       return;
     }
+
+    //Validar si el presupuesto es mayor al gasto
+    if (expense.amount - previousAmount > remainingBudget) {
+      setError(
+        `El gasto se sale del presupuesto, presupuesto restante: ${
+          remainingBudget + previousAmount
+        }`,
+      );
+      return;
+    }
+
     //Agregar un nuevo gasto o actualizar
     if (state.editingID) {
       dispatch({
         type: "update-expense",
         payload: { expense: { id: state.editingID, ...expense } },
       });
-      setError("");
-      return;
     } else {
       dispatch({
         type: "add-expense",
@@ -81,7 +92,7 @@ export default function ExpenseForm() {
   return (
     <form className="space-y-5 " onSubmit={handleSubmit}>
       <legend className="uppercase text-center text-2xl font-black border-b-4 border-blue-500 py-2">
-        Nuevo Gasto
+        {state.editingID ? "Guardar Cambios" : "Registrar Gasto"}
       </legend>
       {error && <ErrorMessage>{error}</ErrorMessage>}
       <div className="flex flex-col gap-2">
@@ -147,7 +158,7 @@ export default function ExpenseForm() {
       <input
         type="submit"
         className="bg-blue-600 cursor-pointer w-full p-2 text-white uppercase font-bold rounded-lg"
-        value={"Registrar Gasto"}
+        value={state.editingID ? "Guardar Cambios" : "Registrar Gasto"}
       />
     </form>
   );
